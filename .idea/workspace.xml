@@ -4,16 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5e995485-fa39-47fa-acde-110bcc7d1623" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/FishBowl.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Fish.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FishBowl.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../Techwise/recursion1.py" afterDir="false" />
+    <list default="true" id="5e995485-fa39-47fa-acde-110bcc7d1623" name="Changes" comment="Initial commit of fishbowl simulation">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Fish.py" beforeDir="false" afterPath="$PROJECT_DIR$/Fish.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FishBowl.py" beforeDir="false" afterPath="$PROJECT_DIR$/FishBowl.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Techwise/recursion1.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,9 +25,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="2gFaEISCIrjAJwY5vQVPZ6GUKrP" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -43,6 +38,7 @@
   "keyToString": {
     "Python.Fish.executor": "Run",
     "Python.FishBowl.executor": "Run",
+    "Python.random.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master"
@@ -64,6 +60,38 @@
       <option name="presentableId" value="Default" />
       <updated>1715295665359</updated>
     </task>
+    <task id="LOCAL-00001" summary="Initial commit of fishbowl simulation">
+      <option name="closed" value="true" />
+      <created>1715304986352</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1715304986352</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Initial commit of fishbowl simulation">
+      <option name="closed" value="true" />
+      <created>1715305020437</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1715305020437</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial commit of fishbowl simulation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initial commit of fishbowl simulation" />
   </component>
 </project>
