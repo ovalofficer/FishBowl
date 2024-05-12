@@ -25,7 +25,7 @@ pygame.display.set_caption("Fish Bowl Sim")
 
 FONT = pygame.font.SysFont("Consolas", 16, True)
 
-NAMETAG_FONT = pygame.font.SysFont("Comic Sans", 18, True)
+NAMETAG_FONT = pygame.font.SysFont("Comic Sans", 12, True)
 
 timer = pygame.time.Clock()
 
@@ -42,12 +42,6 @@ COLORS = {
     "fish": (100, 10, 10)
 }
 
-PERSONALITY_COLORS = [
-    (255, 150, 10),  # Neutral
-    (80, 80, 80),  # Timid
-    (80, 250, 100),  # Friendly
-    (150, 30, 150)  # Bubble Chaser
-]
 
 personalities = {
     0: {"name": "Neutral",
@@ -57,8 +51,8 @@ personalities = {
         "description": "This fish prefers to stay away from the others. They will hang around the corners of the "
                        "tank and chase food only if another fish isn't going for it already."},
     2: {"name": "Friendly",
-        "description": "This fish prefers to stay near the others. They will hang around the middle of the tank, "
-                       "and race other fish to get food."},
+        "description": "This fish prefers to stay near the others. They will follow other fish around the tank, "
+                       "and race to get food."},
     3: {"name": "Bubble Chaser",
         "description": "This fish does not wander like the rest. They only want to pop bubbles. They will eat "
                        "only when necessary. Neutral fish actively avoid the bubble chasers -- they don't seem stable."}
@@ -83,8 +77,8 @@ def clear_screen():
     OVERLAY_SURFACE.fill((0, 0, 0, 0))
 
     pygame.draw.rect(WINDOW, COLORS["distant_background"], (
-        WINDOW_WIDTH // 8, WINDOW_HEIGHT // 8, WINDOW_WIDTH - WINDOW_WIDTH // 4,
-        WINDOW_HEIGHT - WINDOW_HEIGHT // 4))
+        WINDOW_WIDTH // 12, WINDOW_HEIGHT // 12, WINDOW_WIDTH - WINDOW_WIDTH // 6,
+        WINDOW_HEIGHT - WINDOW_HEIGHT // 6))
     pygame.draw.line(OVERLAY_SURFACE, (255, 255, 255, 80), (0, 0), top_left, 4)
     pygame.draw.line(OVERLAY_SURFACE, (255, 255, 255, 80), (0, WINDOW_HEIGHT), bottom_left, 4)
     pygame.draw.line(OVERLAY_SURFACE, (255, 255, 255, 80), (WINDOW_WIDTH, 0), top_right, 4)
@@ -125,7 +119,6 @@ def handle_events():
                 if event.button == 1:
                     food.append(Fish.Food(pygame.mouse.get_pos(), WINDOW_HEIGHT))
                 if event.button == 3:
-                    # fishes.append(Fish.Fish(len(fishes), pygame.mouse.get_pos(), (WINDOW_WIDTH, WINDOW_HEIGHT - 60),personality=D_PERSONALITY))
                     match D_PERSONALITY:
                         case 0:
                             fishes.append(
@@ -163,7 +156,7 @@ def handle_events():
 def create_bubbles(percent_chance: float):
     for i in range(0, WINDOW_WIDTH):
         if random.random() <= percent_chance:
-            bubbles.append(Fish.Bubble((i, WINDOW_HEIGHT), random.randint(6, 30)))
+            bubbles.append(Fish.Bubble(WINDOW, (i, WINDOW_HEIGHT), random.randint(6, 30)))
 
 
 RUNNING = True
@@ -193,11 +186,11 @@ def main():
             fish.draw(WINDOW)
             fish.draw_hunger_bar(WINDOW)
             if D_NAMETAG:
-                fish.draw_nametag(WINDOW, PERSONALITY_COLORS[1], NAMETAG_FONT)
+                fish.draw_nametag(WINDOW, (255, 255, 255), NAMETAG_FONT)
             if D_SHOW_PATH:
                 fish.draw_line_to_wander_goal(WINDOW, (255, 255, 255))
             if D_SHOW_GOAL:
-                fish.draw_wander_goal(WINDOW, PERSONALITY_COLORS[1])
+                fish.draw_wander_goal(WINDOW, (255, 255, 255))
             if D_SHADOWS:
                 draw_shadow(fish.pos)
 
@@ -207,7 +200,7 @@ def main():
 
         for bubble in bubbles:
             bubble.rise(bubbles)
-            bubble.draw(WINDOW)
+            bubble.draw()
 
         settings_rect = pygame.Rect(5, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20)
         settings_label = FONT.render(
