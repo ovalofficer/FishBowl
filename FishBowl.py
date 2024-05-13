@@ -42,7 +42,6 @@ COLORS = {
     "fish": (100, 10, 10)
 }
 
-
 personalities = {
     0: {"name": "Neutral",
         "description": "This fish has no preference for where to be. They will wander the tank aimlessly "
@@ -122,16 +121,20 @@ def handle_events():
                     match D_PERSONALITY:
                         case 0:
                             fishes.append(
-                                Fish.NeutralFish(len(fishes), pygame.mouse.get_pos(), (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
+                                Fish.NeutralFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
+                                                 (WINDOW_WIDTH, WINDOW_HEIGHT - 60), max_hunger=10))
                         case 1:
                             fishes.append(
-                                Fish.TimidFish(len(fishes), pygame.mouse.get_pos(), (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
+                                Fish.TimidFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
+                                               (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
                         case 2:
                             fishes.append(
-                                Fish.FriendlyFish(len(fishes), pygame.mouse.get_pos(), (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
+                                Fish.FriendlyFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
+                                                  (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
                         case 3:
                             fishes.append(
-                                Fish.BubbleChaserFish(len(fishes), pygame.mouse.get_pos(), (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
+                                Fish.BubbleChaserFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
+                                                      (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
 
             case pygame.KEYDOWN:
 
@@ -164,22 +167,23 @@ RUNNING = True
 food: list[Fish.Food] = []
 fishes: list[Fish.Fish] = []
 bubbles: list[Fish.Bubble] = []
+bones: list[Fish.Bone] = []
 
 
 def main():
-
     while RUNNING:
 
         Fish.Fish.foods = food
         Fish.Fish.fishes = fishes
         Fish.Fish.bubbles = bubbles
+        Fish.Fish.bones = bones
 
         timer.tick(FPS_CAP)
         handle_events()
         clear_screen()
 
         if D_BUBBLES:
-            create_bubbles(0.000015)
+            create_bubbles(0.00002)
 
         for fish in fishes:
             fish.run()
@@ -190,7 +194,7 @@ def main():
             if D_SHOW_PATH:
                 fish.draw_line_to_wander_goal(WINDOW, (255, 255, 255))
             if D_SHOW_GOAL:
-                fish.draw_wander_goal(WINDOW, (255, 255, 255))
+                fish.draw_wander_goal(WINDOW, (255, 255, 255), NAMETAG_FONT)
             if D_SHADOWS:
                 draw_shadow(fish.pos)
 
@@ -201,6 +205,10 @@ def main():
         for bubble in bubbles:
             bubble.rise(bubbles)
             bubble.draw()
+
+        for bone in bones:
+            bone.run()
+            bone.draw()
 
         settings_rect = pygame.Rect(5, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20)
         settings_label = FONT.render(

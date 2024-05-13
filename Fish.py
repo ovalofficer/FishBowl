@@ -5,7 +5,8 @@ import pygame
 pygame.mixer.init()
 
 IMAGES = {
-    "food": pygame.image.load('./sprites/Food.png')
+    "food": pygame.image.load('./sprites/Food.png'),
+    "bones": pygame.image.load('./sprites/Bones.png')
 
 }
 
@@ -23,7 +24,32 @@ SOUNDS: dict = {
 }
 
 for sound in SOUNDS.values():
-    sound.set_volume(0.3)
+    sound.set_volume(0.35)
+
+
+class Bone:
+    def __init__(self, screen, pos: tuple[int, int], bones: list[Self]):
+        self.screen = screen
+        self.startpos = pos
+        self.pos = (pos[0], pos[1] - 16)
+        self.bones = bones
+
+    def decay(self):
+        self.bones.remove(self)
+
+    def get_image(self):
+        img = IMAGES["bones"].copy()
+        img.set_alpha(255 - (2 * (self.pos[1] - self.startpos[1])))
+        return pygame.transform.scale(img, (100, 100))
+
+    def draw(self):
+        self.screen.blit(self.get_image(), (self.pos[0] - 16, self.pos[1] - 16))
+
+    def run(self):
+        if self.pos[1] + 8 > self.startpos[1] + 100:
+            self.decay()
+        else:
+            self.pos = (self.pos[0], self.pos[1] + 1)
 
 
 class Bubble:
@@ -82,26 +108,24 @@ class Fish:
     foods: list[Food]
     fishes: list[Self]
     bubbles: list[Bubble]
+    bones: list[Bone]
 
-    def __init__(self, name, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
+    def __init__(self, name, screen, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
                  max_hunger: int = 2500):
         self.name = name
+        self.screen = screen
         self.pos = pos
         self.max_hunger = max_hunger
         self.hunger = self.max_hunger
         self.bounds = bounds
         self.closest_food = None
         self.closest_fish = self
-        self.facing_left = False
+        self.facing_left = True
         self.wander_goal: tuple = (0, 0)
         self.assign_new_wander_goal()
 
-    def return_self(self) -> Self:
-        return self
-
     def move(self, amount_x: int = 0, amount_y: int = 0):
-        if abs(amount_x) >= 1:
-            self.facing_left = amount_x < 0
+        self.facing_left = amount_x <= 0
         self.pos = (self.pos[0] + amount_x, self.pos[1] + amount_y)
 
     def eat(self):
@@ -110,6 +134,7 @@ class Fish:
     def die(self):
         SOUNDS.get("death").play()
         Fish.fishes.remove(self)
+        Fish.bones.append(Bone(self.screen, self.pos, Fish.bones))
 
     def increase_hunger(self):
         self.hunger = max(self.hunger - 1, 0)
@@ -177,28 +202,33 @@ class Fish:
     def advance_toward(self, point: tuple, strength: int = 2):
 
         x, y = self.pos
+        dx, dy = point
 
-        if x < point[0]:
-            if self.is_within_bounds((x + strength, y)):
-                self.move(strength, 0)
-        elif x > point[0]:
-            if self.is_within_bounds((x - strength, y)):
-                self.move(-strength, 0)
-
-        if y < point[1]:
+        if abs(y - dy) < 2:  # Without this check, fish switch directions rapidly when not perfectly aligned
+            pass
+        elif y < dy:
             if self.is_within_bounds((x, y + strength)):
                 self.move(0, strength)
-        elif y > point[1]:
+        elif y > dy:
             if self.is_within_bounds((x, y - strength)):
                 self.move(0, -strength)
+
+        if abs(x - dx) < 2:
+            pass
+        elif x < dx:
+            if self.is_within_bounds((x + strength, y)):
+                self.move(strength, 0)
+        elif x > dx:
+            if self.is_within_bounds((x - strength, y)):
+                self.move(-strength, 0)
 
     def advance_away(self, point: tuple, strength: int = 2):
         self.advance_toward(point, -strength)
 
     def seek_food(self):
+        # TODO: if food is closer to the ground than the fish is to the food, look for another food. if none else: go anyway
+
         self.update_closest_food()
-        if len(Fish.foods) < 0:
-            return
 
         self.advance_toward(self.closest_food.pos)
 
@@ -238,7 +268,11 @@ class Fish:
         self.update_closest_food()
         pygame.draw.line(screen, color, self.pos, self.closest_food.pos)
 
-    def draw_wander_goal(self, screen, color):
+    def draw_wander_goal(self, screen, color, m_font):
+        label = m_font.render(f'{self.name}', True, color)
+        label_rect = pygame.Rect(self.wander_goal[0], self.wander_goal[1] - 15, 7, 7)
+        screen.blit(label, label_rect)
+
         pygame.draw.rect(screen, color, (*self.wander_goal, 7, 7))
 
     def draw_line_to_wander_goal(self, screen, color):
@@ -256,10 +290,10 @@ class Fish:
 
 class BubbleChaserFish(Fish):
 
-    def __init__(self, name, pos: tuple[int, int] = (0, 0),
+    def __init__(self, name, screen, pos: tuple[int, int] = (0, 0),
                  bounds: tuple[int, int] = (100, 100),
                  max_hunger: int = 2500, max_bubble_hunger: int = 800):
-        super().__init__(name, pos, bounds, max_hunger)
+        super().__init__(name, screen, pos, bounds, max_hunger)
         self.hunger = self.max_hunger
         self.bounds = bounds
         self.closest_food = None
@@ -280,8 +314,6 @@ class BubbleChaserFish(Fish):
             self.die()
 
     def seek_food(self) -> None:
-        if len(Fish.foods) < 1:
-            return
 
         self.update_closest_food()
         self.advance_toward(self.closest_food.pos)
@@ -321,22 +353,13 @@ class BubbleChaserFish(Fish):
         else:
             self.advance_toward(self.wander_goal)
 
-    def run(self):
-        self.increase_hunger()
-        self.update_closest_fish()
-        self.update_closest_food()
-        if self.is_hungry() and len(Fish.foods) > 0:
-            self.seek_food()
-        else:
-            self.wander(Fish.bubbles, Fish.fishes)
-
 
 class NeutralFish(Fish):
 
-    def __init__(self, name, pos: tuple[int, int] = (0, 0),
+    def __init__(self, name, screen, pos: tuple[int, int] = (0, 0),
                  bounds: tuple[int, int] = (100, 100),
                  max_hunger: int = 2500):
-        super().__init__(name, pos, bounds, max_hunger)
+        super().__init__(name, screen, pos, bounds, max_hunger)
         self.hunger = self.max_hunger
         self.bounds = bounds
         self.closest_food = None
@@ -346,8 +369,6 @@ class NeutralFish(Fish):
         self.assign_new_wander_goal()
 
     def seek_food(self) -> None:
-        if len(Fish.foods) < 1:
-            return
 
         self.update_closest_food()
         self.advance_toward(self.closest_food.pos)
@@ -372,21 +393,12 @@ class NeutralFish(Fish):
         else:
             self.advance_toward(self.wander_goal)
 
-    def run(self):
-        self.increase_hunger()
-        self.update_closest_fish()
-        self.update_closest_food()
-        if self.is_hungry() and len(Fish.foods) > 0:
-            self.seek_food()
-        else:
-            self.wander(Fish.bubbles, Fish.fishes)
-
 
 class TimidFish(Fish):
 
-    def __init__(self, name, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
+    def __init__(self, name, screen, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
                  max_hunger: int = 2500):
-        super().__init__(name, pos, bounds, max_hunger)
+        super().__init__(name, screen, pos, bounds, max_hunger)
         self.hunger = self.max_hunger
         self.bounds = bounds
         self.closest_food = None
@@ -397,8 +409,6 @@ class TimidFish(Fish):
 
     def seek_food(self):
         self.update_closest_food()
-        if len(Fish.foods) < 0:
-            return
 
         self.advance_toward(self.closest_food.pos)
 
@@ -414,29 +424,21 @@ class TimidFish(Fish):
     def wander(self, bubbles, fish):
         center = (self.bounds[0] // 2, self.bounds[1] // 2)
 
-        while self.get_distance_to_point(self.wander_goal, center) < self.bounds[1] * 0.8 or self.get_distance_from_self(self.wander_goal) < 4:
+        while self.get_distance_to_point(self.wander_goal, center) < self.bounds[
+            1] * 0.8 or self.get_distance_from_self(self.wander_goal) < 4:
             self.assign_new_wander_goal()
 
-        if not self.is_alone() and self.get_distance_from_self(self.closest_fish.pos) < 80:
+        if (not self.is_alone()) and self.get_distance_from_self(self.closest_fish.pos) < 150:
             self.advance_toward(self.wander_goal, 4)
         else:
             self.advance_toward(self.wander_goal)
 
-    def run(self):
-        self.increase_hunger()
-        self.update_closest_fish()
-        self.update_closest_food()
-        if self.is_hungry() and len(Fish.foods) > 0:
-            self.seek_food()
-        else:
-            self.wander(Fish.bubbles, Fish.fishes)
-
 
 class FriendlyFish(Fish):
 
-    def __init__(self, name, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
+    def __init__(self, name, screen, pos: tuple[int, int] = (0, 0), bounds: tuple[int, int] = (100, 100),
                  max_hunger: int = 2500):
-        super().__init__(name, pos, bounds, max_hunger)
+        super().__init__(name, screen, pos, bounds, max_hunger)
         self.hunger = self.max_hunger
         self.bounds = bounds
         self.closest_food = None
@@ -447,8 +449,6 @@ class FriendlyFish(Fish):
 
     def seek_food(self):
         self.update_closest_food()
-        if len(Fish.foods) < 0:
-            return
 
         # If fish is friendly, chase food ~50% faster
         self.advance_toward(self.closest_food.pos, 3)
@@ -471,12 +471,3 @@ class FriendlyFish(Fish):
             self.advance_toward(self.wander_goal, 4)
         else:
             self.advance_toward(self.wander_goal)
-
-    def run(self):
-        self.increase_hunger()
-        self.update_closest_fish()
-        self.update_closest_food()
-        if self.is_hungry() and len(Fish.foods) > 0:
-            self.seek_food()
-        else:
-            self.wander(Fish.bubbles, Fish.fishes)
