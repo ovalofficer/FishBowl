@@ -50,6 +50,7 @@ class Bone:
             self.decay()
         else:
             self.pos = (self.pos[0], self.pos[1] + 1)
+            self.draw()
 
 
 class Bubble:
@@ -61,29 +62,51 @@ class Bubble:
 
     }
 
-    def __init__(self, screen, pos: tuple[int, int] = (0, 0), radius: int = 12):
+    def __init__(self, screen, pos: tuple[int, int] = (0, 0), radius: int = 12, color: tuple[int, int, int, int] = (255, 255, 255, 180)):
         self.screen = screen
         self.pos = pos
         self.radius = radius
         self.shine = random.randint(0, 3)
-        self.shine_amount = random.randint(1, self.radius // 10 + 2)
+        self.shine_amount = random.randint(2, self.radius // 10 + 2)
+        self.color = pygame.Color(*color)
+
+    def draw_pop(self):
+        for i in range(10):
+            self.color.a = i * 10
+            # Using width 2 makes a smoother
+            pygame.draw.circle(self.screen, self.color, self.pos, self.radius + i, 2)
 
     def pop(self, bubbles):
         SOUNDS.get("bubble_pop").play()
+        #    self.draw_pop_lines()
+        self.draw_pop()
         bubbles.remove(self)
 
-    def rise(self, bubbles):
-        if self.pos[1] + 8 < 0 or random.randint(0, 1500) == 1:
-            self.pop(bubbles)
-        else:
-            self.pos = (self.pos[0] + random.randint(-1, 1), self.pos[1] - 1)
+    def rise(self):
+        self.pos = (self.pos[0] + random.randint(-1, 1), self.pos[1] - 1)
 
     def draw(self):
-        pygame.draw.circle(self.screen, (255, 255, 255, 80), self.pos, self.radius, 1)
-        pygame.draw.circle(self.screen, (255, 255, 255, 80), self.pos, self.radius - (self.shine_amount * 1.25),
+        pygame.draw.circle(self.screen, (self.color.r, self.color.g, self.color.b, 25), self.pos, self.radius)
+
+        pygame.draw.circle(self.screen, self.color, self.pos, self.radius, 1)
+        pygame.draw.circle(self.screen, self.color, self.pos, self.radius - (self.shine_amount * 1.5),
                            self.shine_amount,
                            draw_top_left=self.shines[self.shine][0], draw_top_right=self.shines[self.shine][1],
                            draw_bottom_left=self.shines[self.shine][2], draw_bottom_right=self.shines[self.shine][3])
+
+    def run(self, bubbles):
+        if self.pos[1] + 8 < 0 or random.randint(0, 1500) == 1:
+            self.pop(bubbles)
+        else:
+            self.draw()
+            self.rise()
+
+    # def debug_run(self, bubbles):
+    #     if self.pos[1] + 8 < 500:
+    #         self.pop(bubbles)
+    #     else:
+    #         self.draw()
+    #         self.rise()
 
 
 class Food:
@@ -101,7 +124,7 @@ class Food:
 
     def draw(self, screen):
         pygame.draw.rect(screen, (90, 80, 45), (*self.pos, 8, 8))
-        # screen.blit(pygame.transform.scale(IMAGES.get("food"), (10, 10)), self.pos)
+        #  screen.blit(pygame.transform.scale(IMAGES.get("food"), (10, 10)), self.pos)
 
 
 class Fish:
@@ -181,6 +204,8 @@ class Fish:
         closest = (ents[0])
 
         for ent in ents:
+            if ent == self:
+                continue
             if self.get_distance_to_target(ent) < self.get_distance_to_target(closest):
                 closest = ent
 
@@ -194,9 +219,7 @@ class Fish:
         if not self.is_alone() or self not in Fish.fishes:
             return self
 
-        looklist = Fish.fishes.copy()
-        looklist.remove(self)
-        self.closest_fish = self.get_closest_ent(looklist)
+        self.closest_fish = self.get_closest_ent(Fish.fishes)
         return self.closest_fish
 
     def advance_toward(self, point: tuple, strength: int = 2):
@@ -204,7 +227,7 @@ class Fish:
         x, y = self.pos
         dx, dy = point
 
-        if abs(y - dy) < 2:  # Without this check, fish switch directions rapidly when not perfectly aligned
+        if abs(y - dy) < 3:  # Without this check, fish switch directions rapidly when not perfectly aligned
             pass
         elif y < dy:
             if self.is_within_bounds((x, y + strength)):
@@ -213,7 +236,7 @@ class Fish:
             if self.is_within_bounds((x, y - strength)):
                 self.move(0, -strength)
 
-        if abs(x - dx) < 2:
+        if abs(x - dx) < 3:
             pass
         elif x < dx:
             if self.is_within_bounds((x + strength, y)):
@@ -241,7 +264,7 @@ class Fish:
         pass
 
     def wander(self, bubbles, fish):
-        if self.get_distance_from_self(self.wander_goal) < 4:
+        if self.get_distance_from_self(self.wander_goal) < 6:
             self.assign_new_wander_goal()
 
         self.advance_toward(self.wander_goal)
@@ -341,7 +364,7 @@ class BubbleChaserFish(Fish):
 
     def wander(self, bubbles, fish):
 
-        if self.get_distance_from_self(self.wander_goal) < 4:
+        if self.get_distance_from_self(self.wander_goal) < 6:
             self.assign_new_wander_goal()
 
         if len(bubbles) > 0 and self.bubble_hunger == 0:
@@ -384,12 +407,15 @@ class NeutralFish(Fish):
 
     def wander(self, bubbles, fish):
 
-        if self.get_distance_from_self(self.wander_goal) < 4:
+        if self.get_distance_from_self(self.wander_goal) < 6:
             self.assign_new_wander_goal()
+
+        # TODO: implement actual 'aversion' system to make fish want to go in the other direction.
+        # maybe check angle that disliked fish is at and plot wander_goal to the inverse?
 
         if self.closest_fish and isinstance(self.closest_fish, BubbleChaserFish) and self.get_distance_to_target(
                 self.closest_fish) < 50:
-            self.advance_away(self.closest_fish.pos, 6)
+            self.advance_away(self.closest_fish.pos)
         else:
             self.advance_toward(self.wander_goal)
 
@@ -425,11 +451,11 @@ class TimidFish(Fish):
         center = (self.bounds[0] // 2, self.bounds[1] // 2)
 
         while self.get_distance_to_point(self.wander_goal, center) < self.bounds[
-            1] * 0.8 or self.get_distance_from_self(self.wander_goal) < 4:
+            1] * 0.8 or self.get_distance_from_self(self.wander_goal) < 6:
             self.assign_new_wander_goal()
 
-        if (not self.is_alone()) and self.get_distance_from_self(self.closest_fish.pos) < 150:
-            self.advance_toward(self.wander_goal, 4)
+        if (not self.is_alone()) and self.get_distance_from_self(self.closest_fish.pos) < 100:
+            self.advance_toward(self.wander_goal, 5)
         else:
             self.advance_toward(self.wander_goal)
 
@@ -462,10 +488,22 @@ class FriendlyFish(Fish):
         return pygame.transform.flip(pygame.transform.scale(FISH_IMAGES.get(2), (64, 64)),
                                      self.facing_left, False)
 
+    def draw_wander_goal(self, screen, color, m_font):
+        label = m_font.render(f'{self.name}', True, color)
+        label_rect = pygame.Rect(self.wander_goal[0], self.wander_goal[1] - 15, 7, 7)
+        screen.blit(label, label_rect)
+
+        pygame.draw.rect(screen, color, (*self.wander_goal, 7, 7))
+        pygame.draw.rect(screen, (0, 255, 0, 255), (*self.closest_fish.pos, 7, 7))
+
+    def draw_line_to_wander_goal(self, screen, color):
+        pygame.draw.line(screen, color, self.pos, self.wander_goal)
+        pygame.draw.line(screen, (0, 255, 0, 255), self.pos, self.closest_fish.pos)
+
     def wander(self, bubbles, fish):
 
-        if self.get_distance_from_self(self.wander_goal) < 4:
-            self.assign_new_wander_goal(self.get_random_point_in_radius(self.closest_fish.pos, 100))
+        if self.get_distance_from_self(self.wander_goal) < 6:
+            self.assign_new_wander_goal(self.get_random_point_in_radius(self.closest_fish.pos, 80))
 
         if self.get_distance_from_self(self.closest_fish.pos) > 150:
             self.advance_toward(self.wander_goal, 4)

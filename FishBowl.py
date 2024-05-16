@@ -9,6 +9,8 @@ D_SHOW_PATH = False
 D_BUBBLES = False
 D_NAMETAG = False
 D_SHADOWS = True
+D_HUNGERBAR = True
+D_RAINBOW_BUBBLES = False
 
 FPS_CAP = 60
 
@@ -19,6 +21,7 @@ WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
 WINDOW = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+SCREEN = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
 OVERLAY_SURFACE = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
 
 pygame.display.set_caption("Fish Bowl Sim")
@@ -67,13 +70,11 @@ CONSOLE = GameConsole.Console(WINDOW, commands, personalities)
 
 
 def clear_screen():
-    top_left = (WINDOW_WIDTH // 8, WINDOW_HEIGHT // 8)
-    top_right = (WINDOW_WIDTH - WINDOW_WIDTH // 8, WINDOW_HEIGHT // 8)
-    bottom_left = (WINDOW_WIDTH // 2, WINDOW_HEIGHT - WINDOW_HEIGHT // 2)
-    bottom_right = (WINDOW_WIDTH - WINDOW_WIDTH // 2, WINDOW_HEIGHT - WINDOW_HEIGHT // 2)
+    top_left = (WINDOW_WIDTH // 12, WINDOW_HEIGHT // 12)
+    top_right = (WINDOW_WIDTH - WINDOW_WIDTH // 12, WINDOW_HEIGHT // 12)
+    bottom_left = (WINDOW_WIDTH // 12, WINDOW_HEIGHT - WINDOW_HEIGHT // 12)
+    bottom_right = (WINDOW_WIDTH - WINDOW_WIDTH // 12, WINDOW_HEIGHT - WINDOW_HEIGHT // 12)
     WINDOW.fill(COLORS["background"])
-    WINDOW.blit(OVERLAY_SURFACE, (0, 0))
-    OVERLAY_SURFACE.fill((0, 0, 0, 0))
 
     pygame.draw.rect(WINDOW, COLORS["distant_background"], (
         WINDOW_WIDTH // 12, WINDOW_HEIGHT // 12, WINDOW_WIDTH - WINDOW_WIDTH // 6,
@@ -84,11 +85,13 @@ def clear_screen():
     pygame.draw.line(OVERLAY_SURFACE, (255, 255, 255, 80), (WINDOW_WIDTH, WINDOW_HEIGHT), bottom_right, 4)
 
     pygame.draw.polygon(OVERLAY_SURFACE, (0, 0, 0, 255),
-                        ((0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), bottom_left, bottom_right))
+                        ((0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), bottom_right, bottom_left))
 
     pygame.gfxdraw.textured_polygon(OVERLAY_SURFACE,
-                                    ((0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), bottom_left, bottom_right),
+                                    ((0, WINDOW_HEIGHT), (WINDOW_WIDTH, WINDOW_HEIGHT), bottom_right, bottom_left),
                                     IMAGES["sand"], 0, 10)
+    WINDOW.blit(OVERLAY_SURFACE, (0, 0))
+    OVERLAY_SURFACE.fill((255, 255, 255, 0))
 
 
 def draw_shadow(pos):
@@ -108,7 +111,7 @@ def is_in_map_bounds(x, y) -> bool:
 
 
 def handle_events():
-    global RUNNING, fishes, D_PERSONALITY, D_BUBBLES, D_SHOW_GOAL, D_SHOW_PATH, D_NAMETAG, D_SHADOWS
+    global RUNNING, fishes, D_PERSONALITY, D_BUBBLES, D_SHOW_GOAL, D_SHOW_PATH, D_NAMETAG, D_SHADOWS, D_HUNGERBAR, D_RAINBOW_BUBBLES
 
     for event in pygame.event.get():
         match event.type:
@@ -122,7 +125,7 @@ def handle_events():
                         case 0:
                             fishes.append(
                                 Fish.NeutralFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
-                                                 (WINDOW_WIDTH, WINDOW_HEIGHT - 60), max_hunger=10))
+                                                 (WINDOW_WIDTH, WINDOW_HEIGHT - 60)))
                         case 1:
                             fishes.append(
                                 Fish.TimidFish(len(fishes), WINDOW, pygame.mouse.get_pos(),
@@ -154,12 +157,19 @@ def handle_events():
                     D_NAMETAG = not D_NAMETAG
                 if event.key == pygame.K_b:
                     D_SHADOWS = not D_SHADOWS
+                if event.key == pygame.K_n:
+                    D_HUNGERBAR = not D_HUNGERBAR
+                if event.key == pygame.K_m:
+                    D_RAINBOW_BUBBLES = not D_RAINBOW_BUBBLES
 
 
 def create_bubbles(percent_chance: float):
     for i in range(0, WINDOW_WIDTH):
         if random.random() <= percent_chance:
-            bubbles.append(Fish.Bubble(WINDOW, (i, WINDOW_HEIGHT), random.randint(6, 30)))
+            if D_RAINBOW_BUBBLES:
+                bubbles.append(Fish.Bubble(OVERLAY_SURFACE, (i, WINDOW_HEIGHT), random.randint(6, 30), color=( 100 + random.randint(0, 125), 100 + random.randint(0, 125), 100 + random.randint(0, 125), 250) ))
+            else:
+                bubbles.append(Fish.Bubble(OVERLAY_SURFACE, (i, WINDOW_HEIGHT), random.randint(6, 30)))
 
 
 RUNNING = True
@@ -183,12 +193,13 @@ def main():
         clear_screen()
 
         if D_BUBBLES:
-            create_bubbles(0.00002)
+            create_bubbles(0.000025)
 
         for fish in fishes:
             fish.run()
             fish.draw(WINDOW)
-            fish.draw_hunger_bar(WINDOW)
+            if D_HUNGERBAR:
+                fish.draw_hunger_bar(WINDOW)
             if D_NAMETAG:
                 fish.draw_nametag(WINDOW, (255, 255, 255), NAMETAG_FONT)
             if D_SHOW_PATH:
@@ -203,12 +214,10 @@ def main():
             pellet.draw(WINDOW)
 
         for bubble in bubbles:
-            bubble.rise(bubbles)
-            bubble.draw()
+            bubble.run(bubbles)
 
         for bone in bones:
             bone.run()
-            bone.draw()
 
         settings_rect = pygame.Rect(5, WINDOW_HEIGHT - 20, WINDOW_WIDTH, 20)
         settings_label = FONT.render(
